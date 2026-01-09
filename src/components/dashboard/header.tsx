@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { RefreshCw, Settings, Plus } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface DashboardHeaderProps {
@@ -40,28 +39,13 @@ export function DashboardHeader({ onAnalyzeAll, summary }: DashboardHeaderProps)
               Monitor customer health across all accounts
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
+          <Button
               onClick={handleAnalyzeAll}
               disabled={isAnalyzing || total === 0}
             >
               <RefreshCw className={`mr-2 h-4 w-4 ${isAnalyzing ? "animate-spin" : ""}`} />
               {isAnalyzing ? "Analyzing..." : "Analyze All"}
             </Button>
-            <Link href="/accounts">
-              <Button variant="outline">
-                <Settings className="mr-2 h-4 w-4" />
-                Manage
-              </Button>
-            </Link>
-            <Link href="/accounts">
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Account
-              </Button>
-            </Link>
-          </div>
         </div>
 
         {/* Summary Row */}

@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { Hash, Lock, Loader2, Trash2, ArrowLeft } from "lucide-react";
+import { Hash, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { AccountForm } from "@/components/account-form";
@@ -73,18 +72,11 @@ export default function AccountsPage() {
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/dashboard">
-                <Button variant="ghost" size="icon">
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-xl font-semibold">Account Management</h1>
-                <p className="text-sm text-muted-foreground">
-                  Map customer accounts to Slack channels
-                </p>
-              </div>
+            <div>
+              <h1 className="text-xl font-semibold">Account Management</h1>
+              <p className="text-sm text-muted-foreground">
+                Map customer accounts to Slack channels
+              </p>
             </div>
             <AccountForm onAccountCreated={fetchAccounts} />
           </div>
