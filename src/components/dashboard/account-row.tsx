@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { RefreshCw, ChevronRight, AlertTriangle, AlertCircle, CheckCircle } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -22,28 +21,24 @@ interface AccountRowProps {
 
 const sentimentConfig = {
   red: {
-    bg: "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800",
-    indicator: "bg-red-500",
-    Icon: AlertTriangle,
+    stripe: "border-l-red-500",
     label: "At Risk",
+    labelClass: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
   },
   yellow: {
-    bg: "bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200 dark:border-yellow-800",
-    indicator: "bg-yellow-500",
-    Icon: AlertCircle,
-    label: "Needs Attention",
+    stripe: "border-l-yellow-500",
+    label: "Attention",
+    labelClass: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
   },
   green: {
-    bg: "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800",
-    indicator: "bg-green-500",
-    Icon: CheckCircle,
+    stripe: "border-l-green-500",
     label: "Healthy",
+    labelClass: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
   },
   null: {
-    bg: "bg-muted/50 border-border",
-    indicator: "bg-gray-400",
-    Icon: null,
+    stripe: "border-l-gray-300",
     label: "Pending",
+    labelClass: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
   },
 };
 
@@ -65,7 +60,6 @@ function formatRelativeTime(dateString: string): string {
 export function AccountRow({ account, onAnalyze }: AccountRowProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const config = sentimentConfig[account.latest_sentiment ?? "null"];
-  const Icon = config.Icon;
 
   const handleAnalyze = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -81,57 +75,62 @@ export function AccountRow({ account, onAnalyze }: AccountRowProps) {
   const riskFactors = account.risk_factors || [];
 
   return (
-    <Card
-      className={`p-4 flex items-center gap-4 border transition-all hover:shadow-md cursor-default ${config.bg}`}
+    <div
+      className={`
+        flex items-start gap-4 p-3
+        bg-card border rounded-lg border-l-4
+        ${config.stripe}
+        hover:bg-muted/50 transition-colors
+      `}
     >
-      {/* Sentiment Indicator */}
-      <div className={`w-4 h-4 rounded-full shrink-0 ${config.indicator}`} />
-
-      {/* Account Info */}
+      {/* Left: Account Info */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <h3 className="font-semibold truncate">{account.name}</h3>
-          {Icon && <Icon className="h-4 w-4 shrink-0 opacity-70" />}
+        {/* Row 1: Name + Status Badge */}
+        <div className="flex items-center gap-2 mb-1">
+          <h3 className="font-semibold text-sm">{account.name}</h3>
+          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${config.labelClass}`}>
+            {config.label}
+          </span>
         </div>
-        <p className="text-sm text-muted-foreground truncate">
-          {account.latest_summary || `#${account.slack_channel_name || "Unknown channel"}`}
+
+        {/* Row 2: Summary */}
+        <p className="text-sm text-muted-foreground line-clamp-1 mb-1">
+          {account.latest_summary || `#${account.slack_channel_name || "No analysis yet"}`}
         </p>
+
+        {/* Row 3: Risk Factor Tags */}
         {riskFactors.length > 0 && (
-          <div className="flex gap-1 mt-1 flex-wrap">
+          <div className="flex gap-1 flex-wrap">
             {riskFactors.slice(0, 3).map((factor, i) => (
-              <Badge key={i} variant="outline" className="text-xs">
+              <Badge key={i} variant="secondary" className="text-xs py-0 h-5">
                 {factor}
               </Badge>
             ))}
             {riskFactors.length > 3 && (
-              <Badge variant="outline" className="text-xs">
-                +{riskFactors.length - 3} more
+              <Badge variant="secondary" className="text-xs py-0 h-5">
+                +{riskFactors.length - 3}
               </Badge>
             )}
           </div>
         )}
       </div>
 
-      {/* Last Analyzed */}
-      <div className="text-xs text-muted-foreground shrink-0 text-right min-w-[80px]">
-        {account.last_analyzed ? (
-          <>Analyzed {formatRelativeTime(account.last_analyzed)}</>
-        ) : (
-          <>Never analyzed</>
-        )}
+      {/* Right: Timestamp + Action */}
+      <div className="flex items-center gap-2 shrink-0">
+        <span className="text-xs text-muted-foreground">
+          {account.last_analyzed ? formatRelativeTime(account.last_analyzed) : "—"}
+        </span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={handleAnalyze}
+          disabled={isAnalyzing}
+          title="Re-analyze"
+        >
+          <RefreshCw className={`h-4 w-4 ${isAnalyzing ? "animate-spin" : ""}`} />
+        </Button>
       </div>
-
-      {/* Re-analyze Button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={handleAnalyze}
-        disabled={isAnalyzing}
-        className="shrink-0"
-        title="Re-analyze this account"
-      >
-        <RefreshCw className={`h-4 w-4 ${isAnalyzing ? "animate-spin" : ""}`} />
-      </Button>
-    </Card>
+    </div>
   );
 }
