@@ -17,6 +17,7 @@ interface AccountRowProps {
     risk_factors: string[] | null;
   };
   onAnalyze: (accountId: string) => Promise<void>;
+  onClick?: () => void;
 }
 
 const sentimentConfig = {
@@ -57,7 +58,7 @@ function formatRelativeTime(dateString: string): string {
   return `${diffDays}d ago`;
 }
 
-export function AccountRow({ account, onAnalyze }: AccountRowProps) {
+export function AccountRow({ account, onAnalyze, onClick }: AccountRowProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const config = sentimentConfig[account.latest_sentiment ?? "null"];
 
@@ -76,11 +77,16 @@ export function AccountRow({ account, onAnalyze }: AccountRowProps) {
 
   return (
     <div
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => e.key === "Enter" && onClick() : undefined}
       className={`
         flex items-start gap-4 p-3
         bg-card border rounded-lg border-l-4
         ${config.stripe}
         hover:bg-muted/50 transition-colors
+        ${onClick ? "cursor-pointer" : ""}
       `}
     >
       {/* Left: Account Info */}

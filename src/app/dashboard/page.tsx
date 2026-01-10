@@ -6,27 +6,15 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DashboardHeader } from "@/components/dashboard/header";
 import { AccountRow } from "@/components/dashboard/account-row";
+import { AccountDetailPanel } from "@/components/dashboard/account-detail-panel";
 import Link from "next/link";
-
-interface AccountWithSentiment {
-  id: string;
-  name: string;
-  slack_channel_id: string;
-  slack_channel_name: string | null;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-  latest_sentiment: "green" | "yellow" | "red" | null;
-  latest_summary: string | null;
-  last_analyzed: string | null;
-  confidence: number | null;
-  risk_factors: string[] | null;
-}
+import type { AccountWithSentiment } from "@/lib/supabase";
 
 export default function DashboardPage() {
   const [accounts, setAccounts] = useState<AccountWithSentiment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedAccount, setSelectedAccount] = useState<AccountWithSentiment | null>(null);
 
   const fetchAccounts = useCallback(async () => {
     try {
@@ -137,11 +125,20 @@ export default function DashboardPage() {
                 key={account.id}
                 account={account}
                 onAnalyze={handleAnalyzeSingle}
+                onClick={() => setSelectedAccount(account)}
               />
             ))}
           </div>
         )}
       </main>
+
+      {/* Account Detail Panel */}
+      {selectedAccount && (
+        <AccountDetailPanel
+          account={selectedAccount}
+          onClose={() => setSelectedAccount(null)}
+        />
+      )}
     </div>
   );
 }
