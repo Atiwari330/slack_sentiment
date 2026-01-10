@@ -7,11 +7,22 @@ import { Button } from "@/components/ui/button";
 import { DashboardHeader } from "@/components/dashboard/header";
 import { AccountRow } from "@/components/dashboard/account-row";
 import { AccountDetailPanel } from "@/components/dashboard/account-detail-panel";
+import { WhatsChanged } from "@/components/dashboard/whats-changed";
 import Link from "next/link";
 import type { AccountWithSentiment } from "@/lib/supabase";
 
+interface ChangedAccount {
+  accountId: string;
+  accountName: string;
+  previousSentiment: "green" | "yellow" | "red";
+  currentSentiment: "green" | "yellow" | "red";
+  currentSummary: string;
+  changedAt: string;
+}
+
 export default function DashboardPage() {
   const [accounts, setAccounts] = useState<AccountWithSentiment[]>([]);
+  const [changes, setChanges] = useState<ChangedAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<AccountWithSentiment | null>(null);
@@ -34,9 +45,22 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const fetchChanges = useCallback(async () => {
+    try {
+      const response = await fetch("/api/dashboard/changes");
+      const data = await response.json();
+      if (response.ok) {
+        setChanges(data.changes || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch changes:", err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchAccounts();
-  }, [fetchAccounts]);
+    fetchChanges();
+  }, [fetchAccounts, fetchChanges]);
 
   const handleAnalyzeSingle = async (accountId: string) => {
     try {
@@ -70,9 +94,17 @@ export default function DashboardPage() {
 
       // Refresh the list to show updated sentiments
       await fetchAccounts();
+      await fetchChanges();
     } catch (err) {
       console.error("Batch analysis error:", err);
       alert(err instanceof Error ? err.message : "Failed to analyze accounts");
+    }
+  };
+
+  const handleChangeClick = (accountId: string) => {
+    const account = accounts.find((a) => a.id === accountId);
+    if (account) {
+      setSelectedAccount(account);
     }
   };
 
@@ -108,6 +140,9 @@ export default function DashboardPage() {
       <DashboardHeader onAnalyzeAll={handleAnalyzeAll} summary={summary} />
 
       <main className="container mx-auto px-4 py-6">
+        {/* What's Changed Section */}
+        <WhatsChanged changes={changes} onAccountClick={handleChangeClick} />
+
         {accounts.length === 0 ? (
           <Card className="p-12 text-center">
             <h2 className="text-lg font-medium mb-2">No accounts configured</h2>
