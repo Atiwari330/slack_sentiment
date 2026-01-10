@@ -8,6 +8,7 @@ import { DashboardHeader } from "@/components/dashboard/header";
 import { AccountRow } from "@/components/dashboard/account-row";
 import { AccountDetailPanel } from "@/components/dashboard/account-detail-panel";
 import { WhatsChanged } from "@/components/dashboard/whats-changed";
+import { FilterBar, SentimentFilter } from "@/components/dashboard/filter-bar";
 import Link from "next/link";
 import type { AccountWithSentiment } from "@/lib/supabase";
 
@@ -26,6 +27,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<AccountWithSentiment | null>(null);
+  const [sentimentFilter, setSentimentFilter] = useState<SentimentFilter>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchAccounts = useCallback(async () => {
     try {
@@ -116,6 +119,28 @@ export default function DashboardPage() {
     unanalyzed: accounts.filter((a) => !a.latest_sentiment).length,
   };
 
+  // Filter accounts
+  const filteredAccounts = accounts.filter((account) => {
+    // Apply sentiment filter
+    if (sentimentFilter !== "all") {
+      if (sentimentFilter === "pending") {
+        if (account.latest_sentiment !== null) return false;
+      } else {
+        if (account.latest_sentiment !== sentimentFilter) return false;
+      }
+    }
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const matchesName = account.name.toLowerCase().includes(query);
+      const matchesChannel = account.slack_channel_name?.toLowerCase().includes(query);
+      if (!matchesName && !matchesChannel) return false;
+    }
+
+    return true;
+  });
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -154,16 +179,42 @@ export default function DashboardPage() {
             </Link>
           </Card>
         ) : (
-          <div className="space-y-2">
-            {accounts.map((account) => (
-              <AccountRow
-                key={account.id}
-                account={account}
-                onAnalyze={handleAnalyzeSingle}
-                onClick={() => setSelectedAccount(account)}
-              />
-            ))}
-          </div>
+          <>
+            {/* Filter Bar */}
+            <FilterBar
+              selectedFilter={sentimentFilter}
+              onFilterChange={setSentimentFilter}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+            />
+
+            {/* Account List */}
+            {filteredAccounts.length === 0 ? (
+              <Card className="p-8 text-center">
+                <p className="text-muted-foreground">
+                  No accounts match the current filters.
+                </p>
+              </Card>
+            ) : (
+              <div className="space-y-2">
+                {filteredAccounts.map((account) => (
+                  <AccountRow
+                    key={account.id}
+                    account={account}
+                    onAnalyze={handleAnalyzeSingle}
+                    onClick={() => setSelectedAccount(account)}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Results count */}
+            {(sentimentFilter !== "all" || searchQuery) && (
+              <p className="text-xs text-muted-foreground mt-3 text-center">
+                Showing {filteredAccounts.length} of {accounts.length} accounts
+              </p>
+            )}
+          </>
         )}
       </main>
 
