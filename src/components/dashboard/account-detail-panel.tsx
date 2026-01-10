@@ -1,9 +1,13 @@
 "use client";
 
-import { X, Clock, AlertCircle, CheckCircle, MessageSquare, AlertTriangle, ThumbsUp, HelpCircle } from "lucide-react";
+import { useState, useRef, useEffect, useMemo } from "react";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
+import { X, Clock, AlertCircle, CheckCircle, MessageSquare, AlertTriangle, ThumbsUp, HelpCircle, Send, Bot, User, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
 import type { AccountWithSentiment, TimelineEventDb, ConversationStateDb } from "@/lib/supabase";
 
 interface AccountDetailPanelProps {
@@ -141,11 +145,82 @@ function TimelineItem({ event }: { event: TimelineEventDb }) {
   );
 }
 
+// Suggested questions for the agent
+const SUGGESTED_QUESTIONS = [
+  "When did this issue first arise?",
+  "What's the 30-day trend?",
+  "Has our team responded recently?",
+  "What are the main concerns?",
+];
+
 export function AccountDetailPanel({ account, onClose }: AccountDetailPanelProps) {
   const sentiment = account.latest_sentiment;
   const config = sentiment ? sentimentConfig[sentiment] : null;
   const timeline = account.timeline || [];
   const conversationState = account.conversation_state;
+
+  const [inputValue, setInputValue] = useState("");
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+
+  // Create transport for the investigate endpoint
+  const transport = useMemo(
+    () => new DefaultChatTransport({ api: `/api/investigate/${account.id}` }),
+    [account.id]
+  );
+
+  const { messages, status, sendMessage, setMessages } = useChat({
+    id: `investigate-${account.id}`,
+    transport,
+    onFinish: () => {
+      // Scroll to bottom when message finishes
+      if (chatScrollRef.current) {
+        chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+      }
+    },
+  });
+
+  const isLoading = status === "streaming" || status === "submitted";
+
+  // Reset messages when account changes
+  useEffect(() => {
+    setMessages([]);
+    setInputValue("");
+  }, [account.id, setMessages]);
+
+  // Auto-scroll on new messages
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputValue.trim() || isLoading) return;
+
+    sendMessage({
+      content: inputValue,
+      role: "user",
+    });
+    setInputValue("");
+  };
+
+  const handleSuggestedQuestion = (question: string) => {
+    if (isLoading) return;
+    sendMessage({
+      content: question,
+      role: "user",
+    });
+  };
+
+  // Extract text from message parts
+  const getMessageText = (message: typeof messages[0]): string => {
+    if (!message.parts) return "";
+    return message.parts
+      .filter((part): part is { type: "text"; text: string } => part.type === "text")
+      .map((part) => part.text)
+      .join("");
+  };
 
   return (
     <div className="fixed inset-y-0 right-0 w-full sm:w-[480px] bg-background border-l shadow-xl z-50 flex flex-col">
@@ -212,11 +287,88 @@ export function AccountDetailPanel({ account, onClose }: AccountDetailPanelProps
         </div>
       </ScrollArea>
 
-      {/* Footer - placeholder for future agent chat */}
-      <div className="border-t p-4 bg-muted/30">
-        <p className="text-sm text-muted-foreground text-center">
-          Agent chat interface coming soon
-        </p>
+      {/* Agent Chat Section */}
+      <div className="border-t flex flex-col h-[300px]">
+        <div className="p-2 border-b bg-muted/30">
+          <div className="flex items-center gap-2">
+            <Bot className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Ask about this account</span>
+          </div>
+        </div>
+
+        {/* Chat Messages */}
+        <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-3 space-y-3">
+          {messages.length === 0 ? (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">
+                Ask questions about this customer account. Try:
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {SUGGESTED_QUESTIONS.map((q, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleSuggestedQuestion(q)}
+                    disabled={isLoading}
+                    className="text-xs px-2 py-1 bg-muted rounded-full hover:bg-muted/80 transition-colors disabled:opacity-50"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex gap-2 ${message.role === "user" ? "justify-end" : "justify-start"}`}
+              >
+                {message.role === "assistant" && (
+                  <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <Bot className="h-3 w-3 text-primary" />
+                  </div>
+                )}
+                <div
+                  className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
+                    message.role === "user"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted"
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap">{getMessageText(message)}</p>
+                </div>
+                {message.role === "user" && (
+                  <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0">
+                    <User className="h-3 w-3 text-primary-foreground" />
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+          {isLoading && (
+            <div className="flex gap-2">
+              <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <Bot className="h-3 w-3 text-primary" />
+              </div>
+              <div className="bg-muted rounded-lg px-3 py-2">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Chat Input */}
+        <form onSubmit={handleSubmit} className="p-2 border-t flex gap-2">
+          <Input
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder="Ask a question..."
+            disabled={isLoading}
+            className="flex-1 h-9 text-sm"
+          />
+          <Button type="submit" size="sm" disabled={isLoading || !inputValue.trim()}>
+            <Send className="h-4 w-4" />
+          </Button>
+        </form>
       </div>
     </div>
   );
