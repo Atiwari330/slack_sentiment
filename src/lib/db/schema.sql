@@ -23,7 +23,11 @@ CREATE TABLE sentiment_results (
   risk_factors JSONB,
   positive_signals JSONB,
   message_count INTEGER,
-  days_analyzed INTEGER DEFAULT 1
+  days_analyzed INTEGER DEFAULT 1,
+  -- Timeline feature columns (added for conversation timeline feature)
+  timeline JSONB DEFAULT '[]',
+  conversation_state JSONB,
+  urgency TEXT CHECK (urgency IN ('low', 'medium', 'high', 'critical')) DEFAULT 'low'
 );
 
 -- Index for fast dashboard queries (latest sentiment per account)

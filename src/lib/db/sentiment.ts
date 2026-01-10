@@ -1,4 +1,9 @@
-import { supabase, SentimentResult } from "@/lib/supabase";
+import {
+  supabase,
+  SentimentResult,
+  TimelineEventDb,
+  ConversationStateDb,
+} from "@/lib/supabase";
 
 // Store a new sentiment result
 export async function storeSentimentResult(
@@ -11,6 +16,8 @@ export async function storeSentimentResult(
     positiveSignals?: string[];
     messageCount?: number;
     daysAnalyzed?: number;
+    timeline?: TimelineEventDb[];
+    conversationState?: ConversationStateDb;
   }
 ): Promise<SentimentResult> {
   const { data, error } = await supabase
@@ -24,6 +31,9 @@ export async function storeSentimentResult(
       positive_signals: options?.positiveSignals || null,
       message_count: options?.messageCount || null,
       days_analyzed: options?.daysAnalyzed || 1,
+      timeline: options?.timeline || [],
+      conversation_state: options?.conversationState || null,
+      urgency: options?.conversationState?.urgency || "low",
     })
     .select()
     .single();

@@ -8,6 +8,43 @@ import {
   buildAnalysisUserPrompt,
 } from "./prompts";
 
+// Timeline event types
+export type TimelineEventType =
+  | "issue_raised"
+  | "response_given"
+  | "escalation"
+  | "resolution_offered"
+  | "resolution_accepted"
+  | "frustration_expressed"
+  | "positive_feedback"
+  | "question_asked";
+
+export interface TimelineEvent {
+  timestamp: string;
+  eventType: TimelineEventType;
+  actor: "customer" | "vendor";
+  summary: string;
+}
+
+// Conversation state types
+export type ConversationStatus =
+  | "idle"
+  | "active_discussion"
+  | "waiting_on_vendor"
+  | "waiting_on_customer"
+  | "issue_in_progress"
+  | "recently_resolved";
+
+export type UrgencyLevel = "low" | "medium" | "high" | "critical";
+
+export interface ConversationState {
+  status: ConversationStatus;
+  description: string;
+  customerWaitingHours: number | null;
+  lastVendorResponseHours: number | null;
+  urgency: UrgencyLevel;
+}
+
 export interface AnalysisResult {
   id: string;
   accountId: string;
@@ -20,6 +57,8 @@ export interface AnalysisResult {
   messageCount: number;
   daysAnalyzed: number;
   analyzedAt: string;
+  timeline: TimelineEvent[];
+  conversationState: ConversationState;
 }
 
 export async function analyzeAccount(
@@ -109,6 +148,16 @@ export async function analyzeAccount(
     throw new Error(`Invalid sentiment value: ${analysis.sentiment}`);
   }
 
+  // Extract timeline and conversation state with defaults
+  const timeline: TimelineEvent[] = analysis.timeline || [];
+  const conversationState: ConversationState = analysis.conversationState || {
+    status: "idle",
+    description: "No recent activity",
+    customerWaitingHours: null,
+    lastVendorResponseHours: null,
+    urgency: "low",
+  };
+
   // Store the result in the database
   const result = await storeSentimentResult(
     accountId,
@@ -120,6 +169,8 @@ export async function analyzeAccount(
       positiveSignals: analysis.positiveSignals || [],
       messageCount: messages.length,
       daysAnalyzed: daysBack,
+      timeline,
+      conversationState,
     }
   );
 
@@ -135,6 +186,8 @@ export async function analyzeAccount(
     messageCount: messages.length,
     daysAnalyzed: daysBack,
     analyzedAt: result.analyzed_at,
+    timeline,
+    conversationState,
   };
 }
 

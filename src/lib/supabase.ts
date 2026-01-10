@@ -17,6 +17,23 @@ export interface Account {
   updated_at: string;
 }
 
+// Timeline event stored in JSONB
+export interface TimelineEventDb {
+  timestamp: string;
+  eventType: string;
+  actor: "customer" | "vendor";
+  summary: string;
+}
+
+// Conversation state stored in JSONB
+export interface ConversationStateDb {
+  status: string;
+  description: string;
+  customerWaitingHours: number | null;
+  lastVendorResponseHours: number | null;
+  urgency: string;
+}
+
 export interface SentimentResult {
   id: string;
   account_id: string;
@@ -28,6 +45,9 @@ export interface SentimentResult {
   positive_signals: string[] | null;
   message_count: number | null;
   days_analyzed: number;
+  timeline: TimelineEventDb[] | null;
+  conversation_state: ConversationStateDb | null;
+  urgency: "low" | "medium" | "high" | "critical" | null;
 }
 
 export interface AccountWithSentiment extends Account {
@@ -36,4 +56,7 @@ export interface AccountWithSentiment extends Account {
   last_analyzed: string | null;
   confidence: number | null;
   risk_factors: string[] | null;
+  timeline: TimelineEventDb[] | null;
+  conversation_state: ConversationStateDb | null;
+  urgency: "low" | "medium" | "high" | "critical" | null;
 }

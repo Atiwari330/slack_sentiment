@@ -49,6 +49,9 @@ export async function getAccountsWithSentiment(): Promise<AccountWithSentiment[]
       last_analyzed: sentiment?.analyzed_at || null,
       confidence: sentiment?.confidence || null,
       risk_factors: sentiment?.risk_factors || null,
+      timeline: sentiment?.timeline || null,
+      conversation_state: sentiment?.conversation_state || null,
+      urgency: sentiment?.urgency || null,
     };
   });
 
