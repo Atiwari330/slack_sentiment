@@ -60,3 +60,51 @@ export interface AccountWithSentiment extends Account {
   conversation_state: ConversationStateDb | null;
   urgency: "low" | "medium" | "high" | "critical" | null;
 }
+
+// Voice Email Assistant Types
+export interface Contact {
+  id: string;
+  name: string;
+  email: string;
+  company: string | null;
+  role: string | null;
+  context: string | null;
+  tags: string[] | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CompanyInfo {
+  id: string;
+  key: string;
+  value: string;
+  category: string | null;
+  created_at: string;
+}
+
+export interface EmailDraft {
+  id: string;
+  session_id: string;
+  version: number;
+  status: "draft" | "approved" | "sent" | "cancelled";
+  transcription: string;
+  contact_id: string | null;
+  recipient_email: string | null;
+  recipient_name: string | null;
+  subject: string | null;
+  body: string | null;
+  feedback: string | null;
+  gmail_message_id: string | null;
+  sent_at: string | null;
+  created_at: string;
+}
+
+export interface GmailToken {
+  id: string;
+  access_token_encrypted: string;
+  refresh_token_encrypted: string;
+  token_expiry: string;
+  email: string;
+  created_at: string;
+  updated_at: string;
+}

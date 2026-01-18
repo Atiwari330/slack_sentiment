@@ -7,7 +7,7 @@ import { getSentimentHistory } from "@/lib/db/sentiment";
 export const investigatorTools = {
   fetch_messages: tool({
     description: "Fetch Slack messages from a channel for a given time period. Use this to get the raw conversation history.",
-    parameters: z.object({
+    inputSchema: z.object({
       channelId: z.string().describe("The Slack channel ID"),
       daysBack: z.number().min(1).max(90).describe("Number of days to look back (1-90)"),
     }),
@@ -34,7 +34,7 @@ export const investigatorTools = {
 
   search_messages: tool({
     description: "Search for specific keywords or phrases within channel messages. Returns matching messages only.",
-    parameters: z.object({
+    inputSchema: z.object({
       channelId: z.string().describe("The Slack channel ID"),
       query: z.string().describe("Search term or phrase to find"),
       daysBack: z.number().min(1).max(90).default(30).describe("Number of days to search (default 30)"),
@@ -73,7 +73,7 @@ export const investigatorTools = {
 
   get_sentiment_history: tool({
     description: "Get historical sentiment analysis results for an account. Shows how sentiment has changed over time.",
-    parameters: z.object({
+    inputSchema: z.object({
       accountId: z.string().describe("The account UUID"),
       limit: z.number().min(1).max(100).default(30).describe("Number of historical records to fetch"),
     }),
@@ -107,7 +107,7 @@ export const investigatorTools = {
 
   analyze_response_times: tool({
     description: "Analyze response time patterns between customer and vendor in the channel. Identifies who spoke last and waiting times.",
-    parameters: z.object({
+    inputSchema: z.object({
       channelId: z.string().describe("The Slack channel ID"),
       daysBack: z.number().min(1).max(30).default(7).describe("Number of days to analyze"),
     }),

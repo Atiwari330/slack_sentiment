@@ -7,7 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Slack Sentiment Analysis Dashboard - A Next.js application that monitors customer account health by analyzing Slack channel conversations. It provides:
 1. **Sentiment Dashboard** (`/dashboard`) - At-a-glance view of all accounts with color-coded health indicators (red/yellow/green)
 2. **Account Management** (`/accounts`) - Map customer names to Slack channels
-3. **Chat Interface** (`/`) - AI-powered chat for querying individual channel discussions
+3. **Voice Email Assistant** (`/voice`) - Compose and send emails using voice dictation with AI-powered drafting
+4. **Contact Management** (`/contacts`) - Manage email contacts for the voice assistant
+5. **Chat Interface** (`/`) - AI-powered chat for querying individual channel discussions
 
 ## Commands
 
@@ -27,6 +29,8 @@ User Browser
 │                        Pages                                 │
 │  /dashboard      → Sentiment dashboard (main view)          │
 │  /accounts       → Account management                        │
+│  /voice          → Voice email assistant (PWA)               │
+│  /contacts       → Contact management                        │
 │  /               → Chat interface (legacy)                   │
 └─────────────────────────────────────────────────────────────┘
     ↓
@@ -39,6 +43,13 @@ User Browser
 │  POST /api/chat                 → AI chat streaming         │
 │  GET /api/slack/channels        → List Slack channels       │
 │  GET /api/slack/history         → Fetch channel messages    │
+│  GET/POST /api/contacts         → Contact CRUD              │
+│  GET /api/voice/token           → Deepgram temporary key    │
+│  POST /api/voice/compose        → AI email composition      │
+│  POST /api/voice/revise         → AI email revision         │
+│  GET /api/gmail/auth            → Start Gmail OAuth         │
+│  GET /api/gmail/callback        → OAuth callback            │
+│  POST /api/gmail/send           → Send approved email       │
 └─────────────────────────────────────────────────────────────┘
     ↓
 ┌─────────────────────────────────────────────────────────────┐
@@ -46,6 +57,8 @@ User Browser
 │  Supabase (PostgreSQL)  → Accounts & sentiment storage      │
 │  Slack Web API          → Channel/message data              │
 │  AI Provider            → Sentiment analysis & chat         │
+│  Deepgram               → Real-time voice transcription     │
+│  Gmail API              → Email sending via OAuth           │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -72,6 +85,23 @@ User Browser
 | File | Purpose |
 |------|---------|
 | `src/lib/slack.ts` | `getChannels()`, `getChannelHistory()`, `formatMessagesForContext()` |
+
+### Voice Email Assistant
+| File | Purpose |
+|------|---------|
+| `src/app/voice/page.tsx` | Main voice assistant page (PWA) |
+| `src/components/voice/voice-assistant.tsx` | State machine orchestrator |
+| `src/components/voice/voice-record-button.tsx` | Mic button with pulse animation |
+| `src/components/voice/transcription-display.tsx` | Real-time transcription |
+| `src/components/voice/email-draft-card.tsx` | Draft preview + actions |
+| `src/components/voice/feedback-input.tsx` | Voice/text revision input |
+| `src/components/voice/gmail-connect.tsx` | OAuth connection UI |
+| `src/lib/agents/email-composer.ts` | AI agent with tools |
+| `src/lib/deepgram.ts` | Deepgram client config |
+| `src/lib/gmail.ts` | Gmail API client + OAuth |
+| `src/lib/encryption.ts` | Token encryption utilities |
+| `src/lib/db/contacts.ts` | Contact CRUD operations |
+| `src/lib/db/email-drafts.ts` | Draft storage |
 
 ### Chat Interface (Legacy)
 | File | Purpose |
@@ -107,6 +137,17 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...   # Service role key (server-side only)
 
 # Cron Security
 CRON_SECRET=your-random-secret     # Secures the cron endpoint
+
+# Voice Email Assistant
+DEEPGRAM_API_KEY=...               # Deepgram API key for voice transcription
+
+# Gmail OAuth (from Google Cloud Console)
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+GOOGLE_REDIRECT_URI=http://localhost:3000/api/gmail/callback
+
+# Token Encryption (generate with: openssl rand -hex 32)
+TOKEN_ENCRYPTION_KEY=...           # 64 hex chars for AES-256 encryption
 ```
 
 ## Automated Analysis
@@ -145,3 +186,37 @@ Runs at 6 AM UTC daily. Manual analysis available via dashboard "Analyze All" bu
 - Strict mode enabled
 - Path alias: `@/*` maps to `./src/*`
 - UI components use Radix primitives with Tailwind (Shadcn pattern)
+
+## Voice Email Assistant
+
+### User Flow
+1. Open `/voice` on phone/desktop → tap mic button
+2. Speak freely: "Send an email to Ben from Imagine asking if they have a feature for..."
+3. AI processes transcription → identifies recipient from contacts → drafts email
+4. Review draft → approve OR provide voice/text feedback for revision
+5. On approval → connect Gmail → email sent via Gmail API
+
+### Database Tables
+- `contacts` - Contact knowledge base with name, email, company, role, context, tags
+- `company_info` - Key-value store for company context (used by AI)
+- `email_drafts` - Draft history with versioning and status tracking
+- `gmail_tokens` - Encrypted OAuth tokens for Gmail
+
+### AI Agent Tools
+The email composer agent (`src/lib/agents/email-composer.ts`) has these tools:
+- `search_contacts` - Fuzzy search contacts by name/company/email
+- `get_contact` - Get full contact details
+- `get_company_info` - Get company context for personalization
+- `create_draft` - Generate the email draft
+
+### PWA Configuration
+- Manifest at `public/manifest.json`
+- Mobile-optimized layout (no sidebar on `/voice`)
+- Add to home screen support for iOS/Android
+
+### Gmail OAuth Setup
+1. Create project in Google Cloud Console
+2. Enable Gmail API
+3. Create OAuth 2.0 credentials (Web application)
+4. Add authorized redirect URI: `http://localhost:3000/api/gmail/callback`
+5. Copy Client ID and Client Secret to environment variables
