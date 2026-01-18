@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateText, createGateway } from "ai";
+import { generateText, createGateway, hasToolCall, stepCountIs } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { emailComposerTools, EMAIL_COMPOSER_SYSTEM_PROMPT } from "@/lib/agents/email-composer";
 import { createDraft } from "@/lib/db/email-drafts";
@@ -19,6 +19,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    console.log("=== Voice Compose Debug ===");
+    console.log("Transcription:", transcription);
 
     // Get AI provider configuration
     const gatewayKey = process.env.AI_GATEWAY_API_KEY;
@@ -46,23 +49,30 @@ export async function POST(request: NextRequest) {
     const result = await generateText({
       model,
       system: EMAIL_COMPOSER_SYSTEM_PROMPT,
-      prompt: `The user dictated the following email request:\n\n"${transcription}"\n\nPlease compose an appropriate email. Use the available tools to find the recipient and gather context, then create the draft.`,
+      prompt: `The user dictated the following email request:\n\n"${transcription}"\n\nCompose an email based on this request. Follow these steps:\n1. Use search_contacts to find the recipient\n2. Use create_draft to generate the final email\n\nYou MUST call the create_draft tool with the composed email. Do not stop until create_draft is called.`,
       tools: emailComposerTools,
-      maxSteps: 5,
+      stopWhen: [hasToolCall('create_draft'), stepCountIs(10)],
     });
+
+    // Log AI execution results
+    console.log("AI Steps:", result.steps.length);
+    for (const step of result.steps) {
+      console.log("Step tool calls:", step.toolCalls?.map(tc => tc.toolName));
+      console.log("Step tool results:", JSON.stringify(step.toolResults, null, 2));
+    }
 
     // Find the create_draft tool result
     let draftData = null;
     for (const step of result.steps) {
       for (const toolResult of step.toolResults) {
-        if (toolResult.toolName === "create_draft" && toolResult.result?.success) {
-          draftData = toolResult.result.draft;
+        if (toolResult.toolName === "create_draft" && toolResult.output?.success) {
+          draftData = toolResult.output.draft;
         }
       }
     }
 
     if (!draftData) {
-      // If no draft was created, try to extract from the response
+      console.log("No draft created! AI text response:", result.text);
       return NextResponse.json(
         { error: "Failed to compose email. Please try again with more details." },
         { status: 400 }

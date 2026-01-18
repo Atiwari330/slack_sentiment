@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { VoiceRecordButton } from "./voice-record-button";
 import { TranscriptionDisplay } from "./transcription-display";
 import { EmailDraftCard, EmailDraft } from "./email-draft-card";
@@ -31,6 +32,8 @@ export function VoiceAssistant() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [gmailConnected, setGmailConnected] = useState(false);
   const [gmailEmail, setGmailEmail] = useState<string | undefined>();
+  const [showTextInput, setShowTextInput] = useState(false);
+  const [textInput, setTextInput] = useState("");
 
   const handleTranscriptionUpdate = useCallback((result: TranscriptionResult) => {
     if (result.isFinal && result.transcript) {
@@ -175,12 +178,21 @@ export function VoiceAssistant() {
     setDraft(null);
     setError(null);
     setShowFeedback(false);
+    setShowTextInput(false);
+    setTextInput("");
   }, []);
 
   const handleError = useCallback((errorMsg: string) => {
     setError(errorMsg);
     setState("error");
   }, []);
+
+  const handleTextSubmit = useCallback(() => {
+    if (!textInput.trim()) return;
+    setShowTextInput(false);
+    handleRecordingStop(textInput.trim());
+    setTextInput("");
+  }, [textInput, handleRecordingStop]);
 
   const handleGmailStatusChange = useCallback((connected: boolean, email?: string) => {
     setGmailConnected(connected);
@@ -217,7 +229,7 @@ export function VoiceAssistant() {
           </div>
 
           {/* Voice Record Button */}
-          {!showDraft && !showFeedback && state !== "processing" && (
+          {!showDraft && !showFeedback && state !== "processing" && !showTextInput && (
             <VoiceRecordButton
               onTranscriptionUpdate={handleTranscriptionUpdate}
               onRecordingStart={handleRecordingStart}
@@ -225,6 +237,36 @@ export function VoiceAssistant() {
               onError={handleError}
               disabled={isProcessing}
             />
+          )}
+
+          {/* Text Input Toggle */}
+          {state === "idle" && !showTextInput && (
+            <button
+              onClick={() => setShowTextInput(true)}
+              className="text-sm text-muted-foreground hover:text-foreground underline"
+            >
+              Or type your request
+            </button>
+          )}
+
+          {/* Text Input */}
+          {state === "idle" && showTextInput && (
+            <div className="w-full space-y-3">
+              <Input
+                value={textInput}
+                onChange={(e) => setTextInput(e.target.value)}
+                placeholder="e.g., Send email to Gabriel asking if he's free for lunch Monday at 2pm"
+                onKeyDown={(e) => e.key === "Enter" && handleTextSubmit()}
+              />
+              <div className="flex gap-2 justify-center">
+                <Button onClick={handleTextSubmit} disabled={!textInput.trim()}>
+                  Submit
+                </Button>
+                <Button variant="outline" onClick={() => setShowTextInput(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
           )}
 
           {/* Processing Indicator */}
