@@ -1,7 +1,8 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { useState, useEffect, useRef } from "react";
+import { DefaultChatTransport } from "ai";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Send, Loader2, Bot, User, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,18 +36,16 @@ export function ChatInterface({ channel }: ChatInterfaceProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
 
+  // Create transport for the chat endpoint
+  const transport = useMemo(
+    () => new DefaultChatTransport({ api: "/api/chat" }),
+    []
+  );
+
   const { messages, status, error, sendMessage, setMessages } =
     useChat({
-      api: "/api/chat",
-      onMessage: (message) => {
-        console.log("=== onMessage ===", message);
-      },
-      onError: (err) => {
-        console.error("=== useChat error ===", err);
-      },
-      onFinish: (message) => {
-        console.log("=== onFinish ===", message);
-      },
+      id: "main-chat",
+      transport,
     });
 
   const isLoading = status === "streaming" || status === "submitted";
@@ -80,15 +79,10 @@ export function ChatInterface({ channel }: ChatInterfaceProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (input.trim()) {
-      sendMessage(
-        { text: input },
-        {
-          body: {
-            channelId: channel?.id,
-            channelName: channel?.name,
-          },
-        }
-      );
+      sendMessage({
+        parts: [{ type: "text" as const, text: input }],
+        role: "user",
+      });
       setInput("");
     }
   };

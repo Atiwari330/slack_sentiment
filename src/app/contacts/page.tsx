@@ -16,7 +16,10 @@ interface Contact {
   role: string | null;
   context: string | null;
   tags: string[] | null;
+  default_asana_project_id: string | null;
+  default_asana_project_name: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 export default function ContactsPage() {

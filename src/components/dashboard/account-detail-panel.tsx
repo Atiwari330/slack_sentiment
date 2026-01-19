@@ -199,7 +199,7 @@ export function AccountDetailPanel({ account, onClose }: AccountDetailPanelProps
     if (!inputValue.trim() || isLoading) return;
 
     sendMessage({
-      content: inputValue,
+      parts: [{ type: "text" as const, text: inputValue }],
       role: "user",
     });
     setInputValue("");
@@ -208,7 +208,7 @@ export function AccountDetailPanel({ account, onClose }: AccountDetailPanelProps
   const handleSuggestedQuestion = (question: string) => {
     if (isLoading) return;
     sendMessage({
-      content: question,
+      parts: [{ type: "text" as const, text: question }],
       role: "user",
     });
   };

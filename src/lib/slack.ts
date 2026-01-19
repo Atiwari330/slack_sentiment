@@ -145,3 +145,48 @@ export function formatMessagesForContext(messages: SlackMessage[]): string {
 
   return formatted.join("\n");
 }
+
+/**
+ * Post a message to a Slack channel
+ * Returns the message timestamp (ts) which serves as the message ID
+ */
+export async function postMessage(channelId: string, text: string): Promise<string> {
+  const response = await slack.chat.postMessage({
+    channel: channelId,
+    text: text,
+  });
+
+  if (!response.ok || !response.ts) {
+    throw new Error(response.error || "Failed to post message to Slack");
+  }
+
+  return response.ts;
+}
+
+export interface SlackUser {
+  id: string;
+  name: string;
+  realName?: string;
+  email?: string;
+}
+
+/**
+ * Look up a Slack user by their email address
+ * Requires the users:read.email scope on the Slack bot
+ */
+export async function getSlackUserByEmail(email: string): Promise<SlackUser | null> {
+  try {
+    const response = await slack.users.lookupByEmail({ email });
+    if (response.ok && response.user) {
+      return {
+        id: response.user.id!,
+        name: response.user.name ?? "unknown",
+        realName: response.user.real_name,
+        email: response.user.profile?.email,
+      };
+    }
+  } catch {
+    // User not found or no permission (users:read.email scope required)
+  }
+  return null;
+}

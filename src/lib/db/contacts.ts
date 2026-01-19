@@ -65,6 +65,8 @@ export async function createContact(contact: {
   role?: string;
   context?: string;
   tags?: string[];
+  default_asana_project_id?: string;
+  default_asana_project_name?: string;
 }): Promise<Contact> {
   const { data, error } = await supabase
     .from("contacts")
@@ -75,6 +77,8 @@ export async function createContact(contact: {
       role: contact.role || null,
       context: contact.context || null,
       tags: contact.tags || null,
+      default_asana_project_id: contact.default_asana_project_id || null,
+      default_asana_project_name: contact.default_asana_project_name || null,
     })
     .select()
     .single();
@@ -86,7 +90,7 @@ export async function createContact(contact: {
 // Update a contact
 export async function updateContact(
   id: string,
-  updates: Partial<Pick<Contact, "name" | "email" | "company" | "role" | "context" | "tags">>
+  updates: Partial<Pick<Contact, "name" | "email" | "company" | "role" | "context" | "tags" | "default_asana_project_id" | "default_asana_project_name">>
 ): Promise<Contact> {
   const { data, error } = await supabase
     .from("contacts")

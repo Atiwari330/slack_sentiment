@@ -36,7 +36,7 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { name, email, company, role, context, tags } = body;
+    const { name, email, company, role, context, tags, default_asana_project_id, default_asana_project_name } = body;
 
     const updates: Record<string, unknown> = {};
     if (name !== undefined) updates.name = name;
@@ -55,6 +55,8 @@ export async function PUT(
     if (role !== undefined) updates.role = role;
     if (context !== undefined) updates.context = context;
     if (tags !== undefined) updates.tags = tags;
+    if (default_asana_project_id !== undefined) updates.default_asana_project_id = default_asana_project_id;
+    if (default_asana_project_name !== undefined) updates.default_asana_project_name = default_asana_project_name;
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json(

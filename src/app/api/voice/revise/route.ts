@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateText, createGateway } from "ai";
+import { generateText, createGateway, hasToolCall, stepCountIs } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { emailComposerTools, EMAIL_REVISER_SYSTEM_PROMPT } from "@/lib/agents/email-composer";
 import { getLatestDraft, createRevision } from "@/lib/db/email-drafts";
@@ -69,15 +69,21 @@ Please revise the email according to the feedback. Use create_draft to submit th
       system: EMAIL_REVISER_SYSTEM_PROMPT,
       prompt,
       tools: emailComposerTools,
-      maxSteps: 3,
+      stopWhen: [hasToolCall('create_draft'), stepCountIs(3)],
     });
 
     // Find the create_draft tool result
     let draftData = null;
     for (const step of result.steps) {
       for (const toolResult of step.toolResults) {
-        if (toolResult.toolName === "create_draft" && toolResult.output?.success) {
-          draftData = toolResult.output.draft;
+        const output = toolResult.output as { success?: boolean; draft?: unknown } | undefined;
+        if (toolResult.toolName === "create_draft" && output?.success) {
+          draftData = output.draft as {
+            recipientEmail: string;
+            recipientName: string;
+            subject: string;
+            body: string;
+          };
         }
       }
     }

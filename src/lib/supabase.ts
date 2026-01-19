@@ -70,6 +70,8 @@ export interface Contact {
   role: string | null;
   context: string | null;
   tags: string[] | null;
+  default_asana_project_id: string | null;
+  default_asana_project_name: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -107,4 +109,43 @@ export interface GmailToken {
   email: string;
   created_at: string;
   updated_at: string;
+}
+
+// Brain Dump Types
+export interface BrainDumpSlackDraft {
+  message: string;
+}
+
+export interface BrainDumpAsanaDraft {
+  taskTitle: string;
+  taskDescription: string;
+  subtasks: string[];
+}
+
+export interface BrainDumpRun {
+  id: string;
+  created_at: string;
+  input_transcript: string;
+  // Slack
+  slack_channel_id: string;
+  slack_channel_name: string;
+  slack_user_id: string | null;
+  // Contact (source for Asana project + assignee)
+  contact_id: string | null;
+  contact_name: string;
+  contact_email: string;
+  // Asana (derived from contact)
+  asana_project_id: string | null;
+  asana_project_name: string | null;
+  // Drafts
+  draft_slack: BrainDumpSlackDraft | null;
+  draft_asana: BrainDumpAsanaDraft | null;
+  revision_history: Array<{ feedback: string; timestamp: string }>;
+  status: "draft" | "slack_sent" | "asana_created" | "complete";
+  // Execution results
+  final_slack_sent_at: string | null;
+  slack_message_ts: string | null;
+  final_asana_created_at: string | null;
+  asana_task_gid: string | null;
+  asana_task_url: string | null;
 }

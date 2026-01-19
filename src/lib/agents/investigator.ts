@@ -124,14 +124,14 @@ export const investigatorTools = {
 
         // Sort by timestamp (newest first already from API)
         const sorted = [...messages].sort(
-          (a, b) => parseFloat(b.ts) - parseFloat(a.ts)
+          (a, b) => parseFloat(b.timestamp) - parseFloat(a.timestamp)
         );
 
         // Find last message from each party
         // In a real implementation, you'd need to distinguish customer vs vendor users
         // For now, we'll provide basic message analysis
         const lastMessage = sorted[0];
-        const lastMessageTime = new Date(parseFloat(lastMessage.ts) * 1000);
+        const lastMessageTime = new Date(parseFloat(lastMessage.timestamp) * 1000);
         const now = new Date();
         const hoursSinceLastMessage = Math.round(
           (now.getTime() - lastMessageTime.getTime()) / (1000 * 60 * 60)
@@ -142,7 +142,7 @@ export const investigatorTools = {
         let gapCount = 0;
         for (let i = 1; i < sorted.length; i++) {
           const gap =
-            parseFloat(sorted[i - 1].ts) - parseFloat(sorted[i].ts);
+            parseFloat(sorted[i - 1].timestamp) - parseFloat(sorted[i].timestamp);
           totalGaps += gap;
           gapCount++;
         }

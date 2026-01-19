@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email, company, role, context, tags } = body;
+    const { name, email, company, role, context, tags, default_asana_project_id, default_asana_project_name } = body;
 
     if (!name || !email) {
       return NextResponse.json(
@@ -56,6 +56,8 @@ export async function POST(request: NextRequest) {
       role,
       context,
       tags,
+      default_asana_project_id,
+      default_asana_project_name,
     });
 
     return NextResponse.json({ contact }, { status: 201 });

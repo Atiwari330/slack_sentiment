@@ -1,4 +1,4 @@
-import { streamText, createGateway, UIMessage } from "ai";
+import { streamText, createGateway, UIMessage, stepCountIs } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { getAccountById } from "@/lib/db/accounts";
 import { investigatorTools, INVESTIGATOR_SYSTEM_PROMPT } from "@/lib/agents/investigator";
@@ -86,7 +86,7 @@ When using tools, use these IDs:
       system: systemPrompt,
       messages,
       tools: investigatorTools,
-      maxSteps: 5, // Allow up to 5 tool calls per request
+      stopWhen: stepCountIs(5), // Allow up to 5 tool calls per request
     });
 
     return result.toUIMessageStreamResponse();

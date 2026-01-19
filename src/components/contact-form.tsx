@@ -11,6 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { AsanaProjectSelect } from "@/components/asana-project-select";
 
 interface Contact {
   id: string;
@@ -20,6 +21,8 @@ interface Contact {
   role: string | null;
   context: string | null;
   tags: string[] | null;
+  default_asana_project_id: string | null;
+  default_asana_project_name: string | null;
 }
 
 interface ContactFormProps {
@@ -36,6 +39,10 @@ export function ContactForm({ onContactCreated, editContact, onClose }: ContactF
   const [role, setRole] = useState(editContact?.role || "");
   const [context, setContext] = useState(editContact?.context || "");
   const [tags, setTags] = useState(editContact?.tags?.join(", ") || "");
+  const [asanaProject, setAsanaProject] = useState<{ id: string | null; name: string | null }>({
+    id: editContact?.default_asana_project_id || null,
+    name: editContact?.default_asana_project_name || null,
+  });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,6 +63,7 @@ export function ContactForm({ onContactCreated, editContact, onClose }: ContactF
     setRole("");
     setContext("");
     setTags("");
+    setAsanaProject({ id: null, name: null });
     setError(null);
   }
 
@@ -79,6 +87,8 @@ export function ContactForm({ onContactCreated, editContact, onClose }: ContactF
         role: role.trim() || null,
         context: context.trim() || null,
         tags: tagsArray.length > 0 ? tagsArray : null,
+        default_asana_project_id: asanaProject.id,
+        default_asana_project_name: asanaProject.name,
       };
 
       const url = isEditing ? `/api/contacts/${editContact.id}` : "/api/contacts";
@@ -196,6 +206,20 @@ export function ContactForm({ onContactCreated, editContact, onClose }: ContactF
           />
           <p className="text-xs text-muted-foreground">
             Comma-separated tags for organization
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">
+            Default Asana Project
+          </label>
+          <AsanaProjectSelect
+            value={asanaProject}
+            onChange={setAsanaProject}
+            disabled={submitting}
+          />
+          <p className="text-xs text-muted-foreground">
+            Brain dumps for this contact will create tasks in this project
           </p>
         </div>
 

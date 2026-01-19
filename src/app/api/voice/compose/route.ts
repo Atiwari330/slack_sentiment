@@ -65,8 +65,15 @@ export async function POST(request: NextRequest) {
     let draftData = null;
     for (const step of result.steps) {
       for (const toolResult of step.toolResults) {
-        if (toolResult.toolName === "create_draft" && toolResult.output?.success) {
-          draftData = toolResult.output.draft;
+        const output = toolResult.output as { success?: boolean; draft?: unknown } | undefined;
+        if (toolResult.toolName === "create_draft" && output?.success) {
+          draftData = output.draft as {
+            contactId: string | null;
+            recipientEmail: string;
+            recipientName: string;
+            subject: string;
+            body: string;
+          };
         }
       }
     }
@@ -86,7 +93,7 @@ export async function POST(request: NextRequest) {
     const savedDraft = await createDraft({
       session_id: sessionId,
       transcription,
-      contact_id: draftData.contactId,
+      contact_id: draftData.contactId ?? undefined,
       recipient_email: draftData.recipientEmail,
       recipient_name: draftData.recipientName,
       subject: draftData.subject,
