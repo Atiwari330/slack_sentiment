@@ -149,3 +149,22 @@ export interface BrainDumpRun {
   asana_task_gid: string | null;
   asana_task_url: string | null;
 }
+
+// Account Actions Types (Morning Briefing)
+export interface AccountAction {
+  id: string;
+  account_id: string;
+  action_type: "slack_message" | "email" | "asana_task" | "skip";
+  trigger_source: "briefing" | "manual";
+  suggested_action: string | null;
+  issue_summary: string | null;
+  executed_message: string | null;
+  slack_channel_id: string | null;
+  slack_message_ts: string | null;
+  status: "suggested" | "executed" | "skipped";
+  sentiment_at_action: string | null;
+  urgency_at_action: string | null;
+  skip_reason: string | null;
+  created_at: string;
+  executed_at: string | null;
+}

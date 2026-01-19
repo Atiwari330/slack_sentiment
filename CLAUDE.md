@@ -6,10 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Slack Sentiment Analysis Dashboard - A Next.js application that monitors customer account health by analyzing Slack channel conversations. It provides:
 1. **Sentiment Dashboard** (`/dashboard`) - At-a-glance view of all accounts with color-coded health indicators (red/yellow/green)
-2. **Account Management** (`/accounts`) - Map customer names to Slack channels
-3. **Voice Email Assistant** (`/voice`) - Compose and send emails using voice dictation with AI-powered drafting
-4. **Contact Management** (`/contacts`) - Manage email contacts for the voice assistant
-5. **Chat Interface** (`/`) - AI-powered chat for querying individual channel discussions
+2. **Morning Briefing** (`/briefing`) - Unified triage interface with AI-suggested actions for at-risk accounts
+3. **Account Management** (`/accounts`) - Map customer names to Slack channels
+4. **Voice Email Assistant** (`/voice`) - Compose and send emails using voice dictation with AI-powered drafting
+5. **Brain Dump** (`/brain-dump`) - Turn voice/text input into Slack messages and Asana tasks
+6. **Contact Management** (`/contacts`) - Manage email contacts for the voice assistant
+7. **Chat Interface** (`/`) - AI-powered chat for querying individual channel discussions
 
 ## Commands
 
@@ -28,8 +30,10 @@ User Browser
 ┌─────────────────────────────────────────────────────────────┐
 │                        Pages                                 │
 │  /dashboard      → Sentiment dashboard (main view)          │
+│  /briefing       → Morning briefing (triage interface)      │
 │  /accounts       → Account management                        │
 │  /voice          → Voice email assistant (PWA)               │
+│  /brain-dump     → Brain dump assistant                      │
 │  /contacts       → Contact management                        │
 │  /               → Chat interface (legacy)                   │
 └─────────────────────────────────────────────────────────────┘
@@ -50,6 +54,9 @@ User Browser
 │  GET /api/gmail/auth            → Start Gmail OAuth         │
 │  GET /api/gmail/callback        → OAuth callback            │
 │  POST /api/gmail/send           → Send approved email       │
+│  GET /api/briefing/generate     → Generate briefing items   │
+│  POST /api/briefing/action/*    → Approve/skip/revise       │
+│  GET /api/briefing/actions/[id] → Action history            │
 └─────────────────────────────────────────────────────────────┘
     ↓
 ┌─────────────────────────────────────────────────────────────┐
@@ -102,6 +109,19 @@ User Browser
 | `src/lib/encryption.ts` | Token encryption utilities |
 | `src/lib/db/contacts.ts` | Contact CRUD operations |
 | `src/lib/db/email-drafts.ts` | Draft storage |
+
+### Morning Briefing
+| File | Purpose |
+|------|---------|
+| `src/app/briefing/page.tsx` | Main briefing page with queue |
+| `src/components/briefing/briefing-card.tsx` | Individual account action card |
+| `src/components/briefing/action-history.tsx` | Action history component |
+| `src/lib/agents/briefing-generator.ts` | AI agent for generating suggestions |
+| `src/lib/db/account-actions.ts` | Account actions CRUD operations |
+| `src/app/api/briefing/generate/route.ts` | Generate briefing suggestions |
+| `src/app/api/briefing/action/approve/route.ts` | Execute approved actions |
+| `src/app/api/briefing/action/skip/route.ts` | Skip actions with reason |
+| `src/app/api/briefing/action/revise/route.ts` | Revise suggestions with feedback |
 
 ### Chat Interface (Legacy)
 | File | Purpose |
@@ -220,3 +240,55 @@ The email composer agent (`src/lib/agents/email-composer.ts`) has these tools:
 3. Create OAuth 2.0 credentials (Web application)
 4. Add authorized redirect URI: `http://localhost:3000/api/gmail/callback`
 5. Copy Client ID and Client Secret to environment variables
+
+## Morning Briefing
+
+### Overview
+The Morning Briefing feature provides a unified triage interface that surfaces at-risk accounts (RED/YELLOW sentiment or medium+ urgency) with AI-generated action suggestions. It reduces the 7+ context switches typically needed to take action on an at-risk account to a single flow.
+
+### User Flow
+1. Open `/briefing` (or click "Morning Briefing" in sidebar)
+2. See queue of at-risk accounts sorted by urgency
+3. For each account card:
+   - View sentiment badge, account name, issue summary
+   - See AI-suggested Slack message (expandable)
+   - Approve & Send, Revise with feedback, or Skip
+4. Actions are logged to `account_actions` table for tracking
+
+### Database Table: `account_actions`
+```sql
+CREATE TABLE account_actions (
+  id UUID PRIMARY KEY,
+  account_id UUID REFERENCES accounts(id),
+  action_type TEXT CHECK (action_type IN ('slack_message', 'email', 'asana_task', 'skip')),
+  trigger_source TEXT CHECK (trigger_source IN ('briefing', 'manual')),
+  suggested_action TEXT,
+  issue_summary TEXT,
+  executed_message TEXT,
+  slack_channel_id TEXT,
+  slack_message_ts TEXT,
+  status TEXT CHECK (status IN ('suggested', 'executed', 'skipped')),
+  sentiment_at_action TEXT,
+  urgency_at_action TEXT,
+  skip_reason TEXT,
+  created_at TIMESTAMPTZ,
+  executed_at TIMESTAMPTZ
+);
+```
+
+### AI Agent Tools
+The briefing generator agent (`src/lib/agents/briefing-generator.ts`) has these tools:
+- `fetch_recent_messages` - Get Slack channel context
+- `get_past_actions` - Check what actions have been taken
+- `generate_suggestion` - Create issue summary and suggested message
+
+### API Endpoints
+- `GET /api/briefing/generate?limit=5` - Generate briefing for top N at-risk accounts
+- `POST /api/briefing/action/approve` - Send approved message to Slack
+- `POST /api/briefing/action/skip` - Log skipped action with optional reason
+- `POST /api/briefing/action/revise` - Regenerate suggestion with feedback
+- `GET /api/briefing/actions/[accountId]` - Get action history for an account
+
+### Integration Points
+- **Sidebar**: "Morning Briefing" navigation item with Coffee icon
+- **Account Detail Panel**: Action History section shows past actions taken

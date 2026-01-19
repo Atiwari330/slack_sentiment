@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import type { AccountWithSentiment, TimelineEventDb, ConversationStateDb } from "@/lib/supabase";
+import { ActionHistory } from "@/components/briefing/action-history";
 
 interface AccountDetailPanelProps {
   account: AccountWithSentiment;
@@ -284,6 +285,12 @@ export function AccountDetailPanel({ account, onClose }: AccountDetailPanelProps
               No significant events in the analysis period.
             </p>
           )}
+        </div>
+
+        {/* Action History */}
+        <div className="mt-6">
+          <h4 className="text-sm font-semibold mb-4">Action History</h4>
+          <ActionHistory accountId={account.id} />
         </div>
       </ScrollArea>
 

@@ -132,3 +132,33 @@ CREATE POLICY "Service role access" ON contacts FOR ALL USING (true);
 CREATE POLICY "Service role access" ON company_info FOR ALL USING (true);
 CREATE POLICY "Service role access" ON email_drafts FOR ALL USING (true);
 CREATE POLICY "Service role access" ON gmail_tokens FOR ALL USING (true);
+
+-- =====================================================
+-- Morning Briefing / Account Actions Tables
+-- =====================================================
+
+-- Account actions: Tracks actions taken on accounts from briefing or manual triggers
+CREATE TABLE account_actions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID REFERENCES accounts(id) ON DELETE CASCADE,
+  action_type TEXT NOT NULL CHECK (action_type IN ('slack_message', 'email', 'asana_task', 'skip')),
+  trigger_source TEXT NOT NULL CHECK (trigger_source IN ('briefing', 'manual')),
+  suggested_action TEXT,
+  issue_summary TEXT,
+  executed_message TEXT,
+  slack_channel_id TEXT,
+  slack_message_ts TEXT,
+  status TEXT DEFAULT 'suggested' CHECK (status IN ('suggested', 'executed', 'skipped')),
+  sentiment_at_action TEXT,
+  urgency_at_action TEXT,
+  skip_reason TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  executed_at TIMESTAMPTZ
+);
+
+-- Index for fast lookups by account
+CREATE INDEX idx_account_actions_account ON account_actions(account_id, created_at DESC);
+
+-- Enable RLS and policy
+ALTER TABLE account_actions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role has full access to account_actions" ON account_actions FOR ALL USING (true);
