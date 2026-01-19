@@ -13,6 +13,7 @@ interface VoiceRecordButtonProps {
   onError?: (error: string) => void;
   disabled?: boolean;
   className?: string;
+  autoStart?: boolean;
 }
 
 export function VoiceRecordButton({
@@ -22,6 +23,7 @@ export function VoiceRecordButton({
   onError,
   disabled,
   className,
+  autoStart,
 }: VoiceRecordButtonProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -38,6 +40,8 @@ export function VoiceRecordButton({
       stopRecording();
     };
   }, []);
+
+  const hasAutoStarted = useRef(false);
 
   const stopRecording = useCallback(() => {
     // Stop MediaRecorder
@@ -152,6 +156,14 @@ export function VoiceRecordButton({
       stopRecording();
     }
   }, [onTranscriptionUpdate, onRecordingStart, onError, stopRecording, isRecording]);
+
+  // Auto-start recording if autoStart prop is true
+  useEffect(() => {
+    if (autoStart && !hasAutoStarted.current && !isRecording && !isConnecting) {
+      hasAutoStarted.current = true;
+      startRecording();
+    }
+  }, [autoStart, isRecording, isConnecting, startRecording]);
 
   const toggleRecording = () => {
     if (isRecording) {

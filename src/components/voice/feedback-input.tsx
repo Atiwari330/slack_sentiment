@@ -28,6 +28,7 @@ export function FeedbackInput({
   const [voiceTranscript, setVoiceTranscript] = useState("");
   const [interimTranscript, setInterimTranscript] = useState("");
   const [isRecording, setIsRecording] = useState(false);
+  const [shouldAutoStart, setShouldAutoStart] = useState(false);
 
   const handleTranscriptionUpdate = (result: TranscriptionResult) => {
     if (result.isFinal) {
@@ -38,13 +39,22 @@ export function FeedbackInput({
     }
   };
 
-  const handleVoiceSubmit = () => {
-    const transcript = voiceTranscript.trim();
+  // Auto-submit when recording stops (for voice mode)
+  const handleRecordingStop = (finalTranscript: string) => {
+    setIsRecording(false);
+    setShouldAutoStart(false);
+    const transcript = finalTranscript.trim();
     if (transcript) {
       onSubmit(transcript);
       setVoiceTranscript("");
       setInterimTranscript("");
     }
+  };
+
+  // Switch to voice mode and auto-start recording
+  const handleVoiceClick = () => {
+    setMode("voice");
+    setShouldAutoStart(true);
   };
 
   const handleTextSubmit = (e: React.FormEvent) => {
@@ -72,7 +82,7 @@ export function FeedbackInput({
           <Button
             variant={mode === "voice" ? "secondary" : "ghost"}
             size="sm"
-            onClick={() => setMode("voice")}
+            onClick={handleVoiceClick}
             disabled={isProcessing}
           >
             <Mic className="h-4 w-4 mr-1" />
@@ -129,24 +139,11 @@ export function FeedbackInput({
             <VoiceRecordButton
               onTranscriptionUpdate={handleTranscriptionUpdate}
               onRecordingStart={() => setIsRecording(true)}
-              onRecordingStop={() => setIsRecording(false)}
+              onRecordingStop={handleRecordingStop}
               disabled={isProcessing}
               className="h-12 w-12"
+              autoStart={shouldAutoStart}
             />
-
-            {voiceTranscript && !isRecording && (
-              <Button
-                onClick={handleVoiceSubmit}
-                disabled={isProcessing}
-              >
-                {isProcessing ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="mr-2 h-4 w-4" />
-                )}
-                Submit Feedback
-              </Button>
-            )}
 
             <Button
               variant="ghost"

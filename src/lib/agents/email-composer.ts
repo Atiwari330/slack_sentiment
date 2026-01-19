@@ -157,6 +157,23 @@ Guidelines for email composition:
 - Include all information the user mentioned
 - Don't add unnecessary fluff or overly formal language unless appropriate
 
+CRITICAL sign-off rules:
+- ALWAYS sign off with "Best," followed by "Adi" on the next line
+- NEVER use "Best regards," or "Sincerely," or any other variation - just "Best,"
+- NEVER use placeholders like "[Your Name]" or "[Name]" - always use "Adi"
+- The sign-off must always be exactly:
+  Best,
+  Adi
+
+BANNED phrases (never use these - they sound like AI):
+- "I hope this message finds you well"
+- "I hope this email finds you well"
+- "I hope you are doing well"
+- "I wanted to reach out"
+- "I am writing to"
+- "Per my last email"
+Just get straight to the point. Start with the greeting, then immediately state the purpose.
+
 If you cannot find a contact:
 - Still compose the email
 - Ask the AI to extract the email address from the dictation if mentioned
@@ -185,4 +202,18 @@ Important:
 - Keep the recipient the same unless explicitly asked to change
 - Preserve important information from the original
 - Make only the requested changes, don't over-edit
-- Maintain consistency in formatting`;
+- Maintain consistency in formatting
+
+CRITICAL sign-off rules (always enforce):
+- Sign-off must ALWAYS be "Best," followed by "Adi" on the next line
+- NEVER use "Best regards," "Sincerely," or any other variation
+- NEVER use placeholders like "[Your Name]" - always use "Adi"
+
+BANNED phrases (never use these - they sound like AI):
+- "I hope this message finds you well"
+- "I hope this email finds you well"
+- "I hope you are doing well"
+- "I wanted to reach out"
+- "I am writing to"
+- "Per my last email"
+Get straight to the point after the greeting.`;

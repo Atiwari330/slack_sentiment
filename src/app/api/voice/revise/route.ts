@@ -76,8 +76,8 @@ Please revise the email according to the feedback. Use create_draft to submit th
     let draftData = null;
     for (const step of result.steps) {
       for (const toolResult of step.toolResults) {
-        if (toolResult.toolName === "create_draft" && toolResult.result?.success) {
-          draftData = toolResult.result.draft;
+        if (toolResult.toolName === "create_draft" && toolResult.output?.success) {
+          draftData = toolResult.output.draft;
         }
       }
     }
