@@ -3,6 +3,11 @@ import { WebClient } from "@slack/web-api";
 // Initialize Slack client
 const slack = new WebClient(process.env.SLACK_BOT_TOKEN);
 
+// User cache for name resolution (module-level, persists across requests)
+let userCache: Map<string, { name: string; realName: string }> | null = null;
+let cacheTimestamp: number = 0;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 export interface SlackChannel {
   id: string;
   name: string;
@@ -141,6 +146,86 @@ export function formatMessagesForContext(messages: SlackMessage[]): string {
     });
     const sender = msg.username || msg.user || "Unknown";
     return `[${date}] ${sender}: ${msg.text}`;
+  });
+
+  return formatted.join("\n");
+}
+
+/**
+ * Fetch all workspace users and build a cache for name resolution
+ */
+async function getUserCache(): Promise<Map<string, { name: string; realName: string }>> {
+  // Return cached if fresh
+  if (userCache && Date.now() - cacheTimestamp < CACHE_TTL) {
+    return userCache;
+  }
+
+  // Fetch all users with pagination
+  const users = new Map<string, { name: string; realName: string }>();
+  let cursor: string | undefined;
+
+  do {
+    const response = await slack.users.list({ limit: 200, cursor });
+    for (const user of response.members || []) {
+      if (user.id && !user.deleted) {
+        users.set(user.id, {
+          name: user.profile?.display_name || user.name || user.id,
+          realName: user.real_name || user.name || user.id,
+        });
+      }
+    }
+    cursor = response.response_metadata?.next_cursor;
+  } while (cursor);
+
+  userCache = users;
+  cacheTimestamp = Date.now();
+  return users;
+}
+
+/**
+ * Replace <@USERID> patterns in text with real names
+ */
+function resolveUserMentions(
+  text: string,
+  users: Map<string, { name: string; realName: string }>
+): string {
+  return text.replace(/<@([A-Z0-9]+)>/g, (match, userId) => {
+    const user = users.get(userId);
+    return user ? `@${user.realName}` : match;
+  });
+}
+
+/**
+ * Format messages for LLM context with resolved user names
+ * This version resolves user IDs to real names for better readability
+ */
+export async function formatMessagesForContextWithNames(
+  messages: SlackMessage[]
+): Promise<string> {
+  if (messages.length === 0) {
+    return "No messages found in the specified time period.";
+  }
+
+  // Build user cache
+  const users = await getUserCache();
+
+  const formatted = messages.map((msg) => {
+    const date = msg.date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    // Resolve sender name
+    const senderId = msg.user || "";
+    const senderInfo = users.get(senderId);
+    const sender = senderInfo?.realName || msg.username || senderId || "Unknown";
+
+    // Resolve @mentions in message text
+    const resolvedText = resolveUserMentions(msg.text, users);
+
+    return `[${date}] ${sender}: ${resolvedText}`;
   });
 
   return formatted.join("\n");

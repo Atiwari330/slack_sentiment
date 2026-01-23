@@ -8,7 +8,6 @@ import { Send, Loader2, Bot, User, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import ReactMarkdown from "react-markdown";
 import { InlineSlackDraft } from "./inline-slack-draft";
 import { InlineAsanaDraft } from "./inline-asana-draft";
@@ -214,7 +213,7 @@ export function ChannelAuditChat({
   return (
     <div className="flex flex-col h-full">
       {/* Messages Area */}
-      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+      <div className="flex-1 overflow-y-auto p-4" ref={scrollRef}>
         <div className="space-y-4">
           {messages.map((message) => {
             const drafts = extractDrafts(message);
@@ -327,7 +326,7 @@ export function ChannelAuditChat({
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Error Display */}
       {error && (

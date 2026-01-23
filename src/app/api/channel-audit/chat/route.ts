@@ -1,6 +1,6 @@
 import { streamText, createGateway, UIMessage } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
-import { getChannelHistory, formatMessagesForContext } from "@/lib/slack";
+import { getChannelHistory, formatMessagesForContextWithNames } from "@/lib/slack";
 import {
   channelAuditTools,
   CHANNEL_AUDIT_SYSTEM_PROMPT,
@@ -62,11 +62,11 @@ export async function POST(req: Request) {
     // Get the model from env or use default
     const modelId = process.env.AI_MODEL || "openai/gpt-4o";
 
-    // Fetch channel context (5 days by default)
+    // Fetch channel context (5 days by default) with resolved user names
     let channelContext = "";
     try {
       const history = await getChannelHistory(channelId, 5);
-      channelContext = formatMessagesForContext(history);
+      channelContext = await formatMessagesForContextWithNames(history);
     } catch (error) {
       console.error("Error fetching channel context:", error);
       channelContext =
