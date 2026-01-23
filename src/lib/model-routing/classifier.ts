@@ -105,13 +105,17 @@ function parseClassifierResponse(text: string): Classification {
       signals: Array.isArray(parsed.signals) ? parsed.signals : [],
     };
   } catch (error) {
-    // Default to needs_attention if parsing fails
     console.error("Failed to parse classifier response:", error);
+
+    // Log the raw response for debugging
+    console.error("Raw classifier response:", text);
+
+    // Default to frontier for safety when classification fails
     return {
       category: "needs_attention",
-      tier: "light",
+      tier: "frontier",  // Use frontier on parse failure for safety
       confidence: 0.3,
-      reason: "Unable to parse classification, defaulting to needs_attention",
+      reason: "Unable to parse classification, defaulting to frontier for safety",
       signals: [],
     };
   }
@@ -155,6 +159,13 @@ export async function classifyEmail(
     });
 
     const classification = parseClassifierResponse(result.text);
+
+    // If parsing failed (low confidence) but heuristic detects high-stakes, override
+    if (classification.confidence < 0.5 && quickHighStakesCheck(input.threadContent)) {
+      classification.tier = "frontier";
+      classification.reason += " (heuristic detected high-stakes signals)";
+    }
+
     const latencyMs = Date.now() - startTime;
 
     // Log the classification for monitoring
