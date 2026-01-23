@@ -168,3 +168,23 @@ export interface AccountAction {
   created_at: string;
   executed_at: string | null;
 }
+
+// Inbox Assistant Types
+export interface InboxDraft {
+  id: string;
+  session_id: string;
+  version: number;
+  status: "draft" | "approved" | "sent" | "cancelled";
+  transcription: string;
+  thread_id: string;
+  original_message_id: string;
+  recipient_email: string;
+  recipient_name: string | null;
+  subject: string;
+  body: string;
+  thread_context: string | null;
+  feedback: string | null;
+  gmail_message_id: string | null;
+  sent_at: string | null;
+  created_at: string;
+}

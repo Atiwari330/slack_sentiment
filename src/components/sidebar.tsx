@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, MessageSquare, Mic, Contact, Brain, Coffee, Search } from "lucide-react";
+import { LayoutDashboard, Users, MessageSquare, Mic, Contact, Brain, Coffee, Search, Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -30,6 +30,11 @@ const navItems = [
     href: "/voice",
     label: "Voice Email",
     icon: Mic,
+  },
+  {
+    href: "/inbox-assistant",
+    label: "Inbox Assistant",
+    icon: Inbox,
   },
   {
     href: "/brain-dump",

@@ -162,3 +162,34 @@ CREATE INDEX idx_account_actions_account ON account_actions(account_id, created_
 -- Enable RLS and policy
 ALTER TABLE account_actions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Service role has full access to account_actions" ON account_actions FOR ALL USING (true);
+
+-- =====================================================
+-- Inbox Assistant Tables
+-- =====================================================
+
+-- Inbox drafts: Reply drafts created by the inbox assistant
+CREATE TABLE inbox_drafts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id UUID NOT NULL,
+  version INTEGER NOT NULL DEFAULT 1,
+  status TEXT CHECK (status IN ('draft', 'approved', 'sent', 'cancelled')),
+  transcription TEXT NOT NULL,
+  thread_id TEXT NOT NULL,
+  original_message_id TEXT NOT NULL,
+  recipient_email TEXT NOT NULL,
+  recipient_name TEXT,
+  subject TEXT NOT NULL,
+  body TEXT NOT NULL,
+  thread_context TEXT,
+  feedback TEXT,
+  gmail_message_id TEXT,
+  sent_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Index for finding drafts by session
+CREATE INDEX idx_inbox_drafts_session ON inbox_drafts(session_id, version DESC);
+
+-- Enable RLS and policy
+ALTER TABLE inbox_drafts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role access" ON inbox_drafts FOR ALL USING (true);
