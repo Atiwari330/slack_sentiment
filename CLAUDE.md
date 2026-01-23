@@ -7,11 +7,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Slack Sentiment Analysis Dashboard - A Next.js application that monitors customer account health by analyzing Slack channel conversations. It provides:
 1. **Sentiment Dashboard** (`/dashboard`) - At-a-glance view of all accounts with color-coded health indicators (red/yellow/green)
 2. **Morning Briefing** (`/briefing`) - Unified triage interface with AI-suggested actions for at-risk accounts
-3. **Account Management** (`/accounts`) - Map customer names to Slack channels
-4. **Voice Email Assistant** (`/voice`) - Compose and send emails using voice dictation with AI-powered drafting
-5. **Brain Dump** (`/brain-dump`) - Turn voice/text input into Slack messages and Asana tasks
-6. **Contact Management** (`/contacts`) - Manage email contacts for the voice assistant
-7. **Chat Interface** (`/`) - AI-powered chat for querying individual channel discussions
+3. **Channel Audit** (`/channel-audit`) - Conversational AI for analyzing any Slack channel with action capabilities
+4. **Account Management** (`/accounts`) - Map customer names to Slack channels
+5. **Voice Email Assistant** (`/voice`) - Compose and send emails using voice dictation with AI-powered drafting
+6. **Brain Dump** (`/brain-dump`) - Turn voice/text input into Slack messages and Asana tasks
+7. **Contact Management** (`/contacts`) - Manage email contacts for the voice assistant
+8. **Chat Interface** (`/`) - AI-powered chat for querying individual channel discussions
 
 ## Commands
 
@@ -31,6 +32,7 @@ User Browser
 │                        Pages                                 │
 │  /dashboard      → Sentiment dashboard (main view)          │
 │  /briefing       → Morning briefing (triage interface)      │
+│  /channel-audit  → Channel analysis with actions            │
 │  /accounts       → Account management                        │
 │  /voice          → Voice email assistant (PWA)               │
 │  /brain-dump     → Brain dump assistant                      │
@@ -57,6 +59,8 @@ User Browser
 │  GET /api/briefing/generate     → Generate briefing items   │
 │  POST /api/briefing/action/*    → Approve/skip/revise       │
 │  GET /api/briefing/actions/[id] → Action history            │
+│  POST /api/channel-audit/chat   → Channel audit AI chat     │
+│  POST /api/channel-audit/approve→ Execute approved drafts   │
 └─────────────────────────────────────────────────────────────┘
     ↓
 ┌─────────────────────────────────────────────────────────────┐
@@ -122,6 +126,17 @@ User Browser
 | `src/app/api/briefing/action/approve/route.ts` | Execute approved actions |
 | `src/app/api/briefing/action/skip/route.ts` | Skip actions with reason |
 | `src/app/api/briefing/action/revise/route.ts` | Revise suggestions with feedback |
+
+### Channel Audit
+| File | Purpose |
+|------|---------|
+| `src/app/channel-audit/page.tsx` | Main page with channel/project selectors |
+| `src/components/channel-audit/channel-audit-chat.tsx` | Chat interface with draft rendering |
+| `src/components/channel-audit/inline-slack-draft.tsx` | Slack message draft card |
+| `src/components/channel-audit/inline-asana-draft.tsx` | Asana task draft card |
+| `src/lib/agents/channel-audit-agent.ts` | AI agent with analysis and draft tools |
+| `src/app/api/channel-audit/chat/route.ts` | Streaming chat endpoint |
+| `src/app/api/channel-audit/approve/route.ts` | Execute approved drafts |
 
 ### Chat Interface (Legacy)
 | File | Purpose |
@@ -292,3 +307,40 @@ The briefing generator agent (`src/lib/agents/briefing-generator.ts`) has these 
 ### Integration Points
 - **Sidebar**: "Morning Briefing" navigation item with Coffee icon
 - **Account Detail Panel**: Action History section shows past actions taken
+
+## Channel Audit
+
+### Overview
+The Channel Audit feature combines conversational AI with action capabilities. Users can select any Slack channel, get an automatic AI analysis, ask follow-up questions, and request draft Slack messages or Asana tasks that can be reviewed and approved before execution.
+
+### User Flow
+1. Open `/channel-audit` (or click "Channel Audit" in sidebar)
+2. Select a Slack channel from the dropdown
+3. AI automatically analyzes the last 5 days of messages
+4. View summary of key topics, action items, risks, and recommendations
+5. Ask follow-up questions about the channel
+6. Request drafts: "Draft a follow-up message to the team" or "Create an Asana task for..."
+7. Review inline draft cards with approve/revise options
+8. Approved Slack messages are sent to the channel
+9. Approved Asana tasks are created in the selected project's inbox section
+
+### AI Agent Tools
+The channel audit agent (`src/lib/agents/channel-audit-agent.ts`) has these tools:
+- `fetch_channel_context` - Fetch recent messages from the channel
+- `search_contacts` - Find contacts by name/email/company
+- `lookup_slack_user` - Get Slack user ID for @mentions
+- `create_slack_draft` - Create a draft Slack message for approval
+- `create_asana_draft` - Create a draft Asana task for approval
+
+### API Endpoints
+- `POST /api/channel-audit/chat` - Streaming chat with tool execution
+- `POST /api/channel-audit/approve` - Execute approved drafts (Slack message or Asana task)
+
+### Inline Draft Cards
+Draft cards appear inline in the chat when the AI creates them:
+- **Slack Draft**: Shows message preview, recipient info, approve/revise buttons
+- **Asana Draft**: Shows task title, description, subtasks, assignee, approve/revise buttons
+
+### Integration Points
+- **Sidebar**: "Channel Audit" navigation item with Search icon
+- **Reuses**: ChannelSelector, AsanaProjectSelect components
