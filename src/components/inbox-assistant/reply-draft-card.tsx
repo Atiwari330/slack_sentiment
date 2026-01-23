@@ -1,11 +1,34 @@
 "use client";
 
-import { Check, X, Edit2, Send, Loader2, Mail, ChevronDown, ChevronUp } from "lucide-react";
+import { Check, X, Edit2, Send, Loader2, Mail, ChevronDown, ChevronUp, Zap, AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+
+export interface ClassificationInfo {
+  category: string;
+  tier: string;
+  reason: string;
+  isHighStakes: boolean;
+}
+
+// Display labels for classification categories
+const CATEGORY_LABELS: Record<string, string> = {
+  routine_reply: "Routine",
+  routine_update: "Update",
+  needs_attention: "Attention",
+  high_stakes_complaint: "Customer Complaint",
+  high_stakes_contract: "Contract/Pricing",
+  high_stakes_escalation: "Escalation",
+  high_stakes_sensitive: "Sensitive",
+  complex_negotiation: "Negotiation",
+};
+
+function getClassificationLabel(category: string): string {
+  return CATEGORY_LABELS[category] || category;
+}
 
 export interface InboxDraft {
   id: string;
@@ -19,6 +42,7 @@ export interface InboxDraft {
   subject: string;
   body: string;
   threadContext: string | null;
+  classification?: ClassificationInfo;
 }
 
 interface ReplyDraftCardProps {
@@ -62,25 +86,43 @@ export function ReplyDraftCard({
             </Badge>
           )}
         </div>
-        <Badge
-          variant={
-            isSent
-              ? "default"
+        <div className="flex items-center gap-2">
+          {/* Classification Badge */}
+          {draft.classification && (
+            <Badge
+              variant={draft.classification.isHighStakes ? "destructive" : "outline"}
+              className="text-xs flex items-center gap-1"
+              title={draft.classification.reason}
+            >
+              {draft.classification.isHighStakes ? (
+                <AlertTriangle className="h-3 w-3" />
+              ) : (
+                <Zap className="h-3 w-3" />
+              )}
+              {getClassificationLabel(draft.classification.category)}
+            </Badge>
+          )}
+          {/* Status Badge */}
+          <Badge
+            variant={
+              isSent
+                ? "default"
+                : isApproved
+                ? "secondary"
+                : isCancelled
+                ? "destructive"
+                : "outline"
+            }
+          >
+            {isSent
+              ? "Sent"
               : isApproved
-              ? "secondary"
+              ? "Approved"
               : isCancelled
-              ? "destructive"
-              : "outline"
-          }
-        >
-          {isSent
-            ? "Sent"
-            : isApproved
-            ? "Approved"
-            : isCancelled
-            ? "Cancelled"
-            : "Draft"}
-        </Badge>
+              ? "Cancelled"
+              : "Draft"}
+          </Badge>
+        </div>
       </div>
 
       {/* Thread Context (collapsible) */}

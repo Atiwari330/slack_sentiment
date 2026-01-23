@@ -9,6 +9,12 @@ import {
   getLatestInboxDraft,
   createInboxRevision,
 } from "@/lib/db/inbox-drafts";
+import {
+  getModelRoutingConfig,
+  getModelForTier,
+  applyEnhancedPrompt,
+  type EmailCategory,
+} from "@/lib/model-routing";
 
 export const maxDuration = 60;
 
@@ -16,7 +22,7 @@ export const maxDuration = 60;
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { sessionId, feedback } = body;
+    const { sessionId, feedback, classificationTier, classificationCategory } = body;
 
     if (!sessionId || !feedback) {
       return NextResponse.json(
@@ -37,13 +43,23 @@ export async function POST(request: NextRequest) {
     // Get AI provider configuration
     const gatewayKey = process.env.AI_GATEWAY_API_KEY;
     const openaiKey = process.env.OPENAI_API_KEY;
-    const modelId = process.env.AI_MODEL || "openai/gpt-4o";
+    const routingConfig = getModelRoutingConfig();
 
     if (!gatewayKey && !openaiKey) {
       return NextResponse.json(
         { error: "AI provider not configured" },
         { status: 500 }
       );
+    }
+
+    // Determine which model to use based on classification tier
+    // If tier was passed from original draft, maintain consistency
+    let modelId: string;
+    if (routingConfig.enabled && classificationTier) {
+      modelId = getModelForTier(classificationTier as "light" | "frontier");
+      console.log(`Revise using ${classificationTier} tier model:`, modelId);
+    } else {
+      modelId = process.env.AI_MODEL || "openai/gpt-4o";
     }
 
     // Create the model
@@ -53,7 +69,9 @@ export async function POST(request: NextRequest) {
       model = gateway(modelId);
     } else {
       const openai = createOpenAI({ apiKey: openaiKey });
-      model = openai(modelId);
+      // Extract model name if in provider/model format
+      const modelName = modelId.includes("/") ? modelId.split("/")[1] : modelId;
+      model = openai(modelName);
     }
 
     // Build the revision prompt
@@ -82,9 +100,21 @@ User feedback: "${feedback}"
 Please revise the email according to the feedback. Use create_reply_draft to submit the revised version.
 Keep the threadId as "${currentDraft.thread_id}" and originalMessageId as "${currentDraft.original_message_id}".`;
 
+    // Apply enhanced prompts if this is a high-stakes email
+    let systemPrompt = INBOX_REVISER_SYSTEM_PROMPT;
+    if (routingConfig.enabled && classificationCategory) {
+      systemPrompt = applyEnhancedPrompt(
+        INBOX_REVISER_SYSTEM_PROMPT,
+        classificationCategory as EmailCategory
+      );
+      if (systemPrompt !== INBOX_REVISER_SYSTEM_PROMPT) {
+        console.log("Applied enhanced prompts for category:", classificationCategory);
+      }
+    }
+
     const result = await generateText({
       model,
-      system: INBOX_REVISER_SYSTEM_PROMPT,
+      system: systemPrompt,
       prompt,
       tools: inboxAssistantTools,
       stopWhen: [hasToolCall("create_reply_draft"), stepCountIs(3)],
@@ -127,6 +157,14 @@ Keep the threadId as "${currentDraft.thread_id}" and originalMessageId as "${cur
       recipient_name: draftData.recipientName,
     });
 
+    // Preserve classification info in response
+    const classificationInfo = classificationTier && classificationCategory ? {
+      category: classificationCategory,
+      tier: classificationTier,
+      reason: "Preserved from original classification",
+      isHighStakes: classificationTier === "frontier",
+    } : undefined;
+
     return NextResponse.json({
       type: "draft",
       draft: {
@@ -143,6 +181,8 @@ Keep the threadId as "${currentDraft.thread_id}" and originalMessageId as "${cur
         threadContext: revisedDraft.thread_context,
         feedback: revisedDraft.feedback,
       },
+      classification: classificationInfo,
+      modelUsed: modelId,
     });
   } catch (error) {
     console.error("Error revising inbox reply:", error);

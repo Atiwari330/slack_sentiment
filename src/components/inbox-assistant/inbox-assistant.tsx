@@ -9,7 +9,7 @@ import { VoiceRecordButton } from "@/components/voice/voice-record-button";
 import { TranscriptionDisplay } from "@/components/voice/transcription-display";
 import { FeedbackInput } from "@/components/voice/feedback-input";
 import { GmailConnect } from "@/components/voice/gmail-connect";
-import { ReplyDraftCard, InboxDraft } from "./reply-draft-card";
+import { ReplyDraftCard, InboxDraft, ClassificationInfo } from "./reply-draft-card";
 import {
   ClarificationCard,
   ClarificationOption,
@@ -39,6 +39,7 @@ export function InboxAssistant() {
   const [finalTranscript, setFinalTranscript] = useState("");
   const [interimTranscript, setInterimTranscript] = useState("");
   const [draft, setDraft] = useState<InboxDraft | null>(null);
+  const [classification, setClassification] = useState<ClassificationInfo | null>(null);
   const [clarification, setClarification] = useState<ClarificationData | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -103,7 +104,13 @@ export function InboxAssistant() {
           setSessionId(data.sessionId);
           setState("clarification");
         } else if (data.type === "draft") {
-          setDraft(data.draft);
+          // Include classification info in the draft if available
+          const draftWithClassification: InboxDraft = {
+            ...data.draft,
+            classification: data.classification,
+          };
+          setDraft(draftWithClassification);
+          setClassification(data.classification || null);
           setSessionId(data.draft.sessionId);
           setClarification(null);
           setState("draft_ready");
@@ -192,6 +199,9 @@ export function InboxAssistant() {
           body: JSON.stringify({
             sessionId: draft.sessionId,
             feedback,
+            // Pass classification info to maintain model consistency
+            classificationTier: classification?.tier,
+            classificationCategory: classification?.category,
           }),
         });
 
@@ -201,7 +211,12 @@ export function InboxAssistant() {
         }
 
         const data = await response.json();
-        setDraft(data.draft);
+        // Include classification info in the revised draft
+        const revisedDraftWithClassification: InboxDraft = {
+          ...data.draft,
+          classification: data.classification || classification,
+        };
+        setDraft(revisedDraftWithClassification);
         setState("draft_ready");
       } catch (err) {
         setError(
@@ -210,7 +225,7 @@ export function InboxAssistant() {
         setState("error");
       }
     },
-    [draft]
+    [draft, classification]
   );
 
   const handleSend = useCallback(async () => {
@@ -243,6 +258,7 @@ export function InboxAssistant() {
     setFinalTranscript("");
     setInterimTranscript("");
     setDraft(null);
+    setClassification(null);
     setClarification(null);
     setSessionId(null);
     setError(null);
