@@ -165,7 +165,7 @@ export async function getGmailTokens(): Promise<GmailToken | null> {
 }
 
 export async function deleteGmailTokens(): Promise<void> {
-  const { error } = await supabase.from("gmail_tokens").delete().neq("id", "");
+  const { error } = await supabase.from("gmail_tokens").delete().not("id", "is", null);
 
   if (error) throw error;
 }
